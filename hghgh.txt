@@ -1,0 +1,435 @@
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import { useCookies } from "react-cookie";
+import { toast } from "react-toastify";
+import { retrieveRooms, storeRoom, deleteRoom, updateRoom } from "../api/room";
+import { retrieveRoomTypes } from "../api/roomtype";
+import checkAuth from "../hoc/checkAuth";
+
+function Home() {
+  const [rooms, setRooms] = useState([]);
+  const [newRoom, setNewRoom] = useState({
+    id: null,
+    name: "",
+    roomTypeId: "",
+    location: "",
+    description: "",
+    capacity: "",
+    image: null,
+  });
+  const [openAddRoomDialog, setOpenAddRoomDialog] = useState(false);
+  const [openEditRoomDialog, setOpenEditRoomDialog] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [cookies] = useCookies();
+
+  // Fetch rooms and room types from API
+  const retrieve = () => {
+    retrieveRooms(cookies.AUTH_TOKEN)
+      .then((res) => {
+        if (res?.ok) {
+          setRooms(res.data);
+        } else {
+          toast.error("Failed to retrieve rooms.");
+        }
+      })
+      .catch(() => toast.error("Error fetching rooms"));
+
+    retrieveRoomTypes(cookies.AUTH_TOKEN)
+      .then((res) => {
+        if (res?.ok) {
+          setRoomTypes(res.data);
+        } else {
+          toast.error("Failed to retrieve room types.");
+        }
+      })
+      .catch(() => toast.error("Error fetching room types"));
+  };
+
+  useEffect(() => {
+    retrieve();
+  }, []);
+
+  const [roomTypes, setRoomTypes] = useState([]);
+
+  // Drag-and-drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      setNewRoom((prev) => ({ ...prev, image: file }));
+    } else {
+      toast.error("Only image files are allowed.");
+    }
+  };
+
+  // Handle manual file input
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("image/")) {
+      setNewRoom((prev) => ({ ...prev, image: file }));
+    } else {
+      toast.error("Only image files are allowed.");
+    }
+  };
+
+  const handleAddRoomOpen = () => setOpenAddRoomDialog(true);
+  const handleAddRoomClose = () => setOpenAddRoomDialog(false);
+  const handleEditRoomOpen = (room) => {
+    setNewRoom({
+      id: room.id,
+      name: room.name,
+      roomTypeId: room.roomTypeId,
+      location: room.location,
+      description: room.description,
+      capacity: room.capacity,
+      image: room.image,
+    });
+    setOpenEditRoomDialog(room);
+  };
+  const handleEditRoomClose = () => setOpenEditRoomDialog(false);
+
+  // Handle room creation
+  const handleCreateRoom = () => {
+    const formData = new FormData();
+    formData.append("room_name", newRoom.name);
+    formData.append("room_type_id", newRoom.roomTypeId);
+    formData.append("location", newRoom.location);
+    formData.append("description", newRoom.description);
+    formData.append("capacity", newRoom.capacity);
+
+    // Ensure the image is added if it exists
+    if (newRoom.image) {
+      const imageFile =
+        newRoom.image instanceof File
+          ? newRoom.image
+          : dataURLtoFile(newRoom.image, "image.jpg");
+      formData.append("image", imageFile);
+    }
+
+    // Validate input before submitting
+    if (
+      !newRoom.name ||
+      !newRoom.roomTypeId ||
+      !newRoom.location ||
+      !newRoom.description ||
+      !newRoom.capacity
+    ) {
+      toast.error("Please fill all the required fields.");
+      return;
+    }
+
+    storeRoom(formData, cookies.AUTH_TOKEN)
+      .then((res) => {
+        if (res?.ok) {
+          toast.success("Room added successfully!");
+          setNewRoom({
+            name: "",
+            roomTypeId: "",
+            location: "",
+            description: "",
+            capacity: "",
+            image: null,
+          });
+          retrieve();
+          handleAddRoomClose();
+        } else {
+          toast.error(res?.message || "Room creation failed.");
+        }
+      })
+      .catch(() => {
+        toast.error("Error occurred while creating room.");
+      });
+  };
+
+  // Handle room editing
+  const handleEditRoom = () => {
+    const formData = new FormData();
+    formData.append("room_name", openEditRoomDialog?.name);
+    formData.append("room_type_id", openEditRoomDialog?.roomTypeId);
+    formData.append("location", newRoom.location);
+    formData.append("description", newRoom.description);
+    formData.append("capacity", newRoom.capacity);
+
+    if (newRoom.image) {
+      const imageFile =
+        newRoom.image instanceof File
+          ? newRoom.image
+          : dataURLtoFile(newRoom.image, "image.jpg");
+      formData.append("image", imageFile);
+    }
+
+    updateRoom(newRoom.id, formData, cookies.AUTH_TOKEN)
+      .then((res) => {
+        if (res?.ok) {
+          toast.success("Room updated successfully!");
+          retrieve();
+          handleEditRoomClose();
+        } else {
+          toast.error(res?.message || "Room update failed.");
+        }
+      })
+      .catch(() => toast.error("Error occurred while updating room."));
+  };
+
+  // Handle room deletion
+  const handleDeleteRoom = (roomId) => {
+    console.log(roomId);
+    deleteRoom(cookies.AUTH_TOKEN, roomId)
+      .then((res) => {
+        if (res?.ok) {
+          toast.success("Room deleted successfully!");
+          retrieve();
+        } else {
+          toast.error("Failed to delete room.");
+        }
+      })
+      .catch(() => toast.error("Error occurred while deleting room."));
+  };
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", padding: 2 }}>
+      <Button variant="outlined" color="primary" onClick={handleAddRoomOpen}>
+        Add Room
+      </Button>
+
+      {/* Add Room Dialog */}
+      <Dialog open={openAddRoomDialog} onClose={handleAddRoomClose}>
+        <DialogTitle>Add Room</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Room Name"
+            fullWidth
+            value={openEditRoomDialog?.name}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, name: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+
+          />
+          <FormControl fullWidth sx={{ marginBottom: "16px" }}>
+            <InputLabel id="room-type-label">Room Type</InputLabel>
+            <Select
+              labelId="room-type-label"
+              value={newRoom.roomTypeId}
+              onChange={(e) =>
+                setNewRoom({ ...newRoom, roomTypeId: e.target.value })
+              }
+            >
+              {roomTypes.map((type) => (
+                <MenuItem key={type.id} value={type.id}>
+                  {type.room_type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Location"
+            fullWidth
+            value={newRoom.location}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, location: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            multiline
+            rows={4}
+            value={newRoom.description}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, description: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          <TextField
+            label="Capacity"
+            type="number"
+            fullWidth
+            value={newRoom.capacity}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, capacity: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          {/* Image Drag-and-Drop Section */}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAddRoomClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleCreateRoom} variant="outlined">
+            Create Room
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Room Dialog */}
+      <Dialog open={openEditRoomDialog} onClose={handleEditRoomClose}>
+        <DialogTitle>Edit Room</DialogTitle>
+        <DialogContent>
+          {console.log(openEditRoomDialog)}
+          <TextField
+            label="Room Name"
+            fullWidth
+            value={openEditRoomDialog?.room_name}
+            onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+            sx={{ marginBottom: "16px" }}
+          />
+          <FormControl fullWidth sx={{ marginBottom: "16px" }}>
+            <InputLabel id="edit-room-type-label">Room Type</InputLabel>
+            <Select
+              labelId="edit-room-type-label"
+              value={openEditRoomDialog?.room_type_id}
+              onChange={(e) =>
+                setNewRoom({ ...newRoom, roomTypeId: e.target.value })
+              }
+            >
+              {roomTypes.map((type) => (
+                <MenuItem key={type.id} value={type.id}>
+                  {type.room_type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Location"
+            fullWidth
+            value={openEditRoomDialog?.location}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, location: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            multiline
+            rows={4}
+            value={openEditRoomDialog?.description}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, description: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          <TextField
+            label="Capacity"
+            type="number"
+            fullWidth
+            value={openEditRoomDialog?.capacity}
+            onChange={(e) =>
+              setNewRoom({ ...newRoom, capacity: e.target.value })
+            }
+            sx={{ marginBottom: "16px" }}
+          />
+          {/* Optionally, add a section for editing the image */}
+          <Box
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            sx={{
+              border: dragging ? "2px dashed #3f51b5" : "2px dashed #cccccc",
+              padding: "16px",
+              textAlign: "center",
+              cursor: "pointer",
+            }}
+          >
+            {newRoom.image ? (
+              <img
+                src={URL.createObjectURL(newRoom.image)}
+                alt="Room Preview"
+                style={{ width: "100%", height: "140px", objectFit: "cover" }}
+              />
+            ) : (
+              <Typography>Drag and drop an image here</Typography>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+              id="image-upload"
+            />
+            <label htmlFor="image-upload">
+              <Button
+                variant="outlined"
+                component="span"
+                sx={{ marginTop: "8px" }}
+              >
+                Choose Image
+              </Button>
+            </label>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditRoomClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleEditRoom} variant="outlined">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Display Rooms */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+        {rooms.map((room) => (
+          <Box key={room.id} sx={{ width: 300 }}>
+            <img
+              src={
+                room.image ||
+                "https://images.pexels.com/photos/1470945/pexels-photo-1470945.jpeg"
+              }
+              alt="Room Image"
+              style={{ width: "100%", height: "140px", objectFit: "cover" }}
+            />
+            <Typography variant="h6">{room.name}</Typography>
+            <Typography variant="body2">Capacity: {room.capacity}</Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => handleEditRoomOpen(room)}
+              sx={{ marginTop: "8px" }}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => handleDeleteRoom(room.id)}
+              sx={{ marginTop: "8px" }}
+            >
+              Delete
+            </Button>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+export default checkAuth(Home);

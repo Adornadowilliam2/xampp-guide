@@ -1,0 +1,96 @@
+ const handleAddSubject = () => {
+    if (subjectName.trim() === "") return;
+    const newSubject = {
+      name: subjectName,
+      createdAt: new Date().toLocaleDateString(),
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setSubjects([...subjects, newSubject]);
+    setSubjectName("");
+    setSnackMessage("Subject added successfully!");
+  };
+
+  const handleAddRoomType = () => {
+    if (roomTypeName.trim() === "") return;
+    const newRoomType = {
+      name: roomTypeName,
+      createdAt: new Date().toLocaleDateString(),
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setRoomTypes([...roomTypes, newRoomType]);
+    setRoomTypeName("");
+    setSnackMessage("Room type added successfully!");
+  };
+
+  const handleAddSection = () => {
+    if (sectionName.trim() === "") return;
+    const newSection = {
+      name: sectionName,
+      createdAt: new Date().toLocaleDateString(),
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setSections([...sections, newSection]);
+    setSectionName("");
+    setSnackMessage("Section added successfully!");
+  };
+
+  const handleEditSubject = (index) => {
+    const updatedSubjects = [...subjects];
+    updatedSubjects[index] = {
+      ...updatedSubjects[index],
+      name: subjectName,
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setSubjects(updatedSubjects);
+    setEditMode(null);
+    setSubjectName("");
+    setSnackMessage("Subject edited successfully!");
+  };
+
+  const handleEditRoomType = (index) => {
+    const updatedRoomTypes = [...roomTypes];
+    updatedRoomTypes[index] = {
+      ...updatedRoomTypes[index],
+      name: roomTypeName,
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setRoomTypes(updatedRoomTypes);
+    setEditMode(null);
+    setRoomTypeName("");
+    setSnackMessage("Room type edited successfully!");
+  };
+
+  const handleEditSection = (index) => {
+    const updatedSections = [...sections];
+    updatedSections[index] = {
+      ...updatedSections[index],
+      name: sectionName,
+      modifiedAt: new Date().toLocaleDateString(),
+    };
+    setSections(updatedSections);
+    setEditMode(null);
+    setSectionName("");
+    setSnackMessage("Section edited successfully!");
+  };
+
+  const handleDeleteSubject = (index) => {
+    const updatedSubjects = subjects.filter((_, i) => i !== index);
+    setSubjects(updatedSubjects);
+    setSnackMessage("Subject deleted successfully!");
+  };
+
+  const handleDeleteRoomType = (index) => {
+    const updatedRoomTypes = roomTypes.filter((_, i) => i !== index);
+    setRoomTypes(updatedRoomTypes);
+    setSnackMessage("Room type deleted successfully!");
+  };
+
+  const handleDeleteSection = (index) => {
+    const updatedSections = sections.filter((_, i) => i !== index);
+    setSections(updatedSections);
+    setSnackMessage("Section deleted successfully!");
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackMessage("");
+  };
