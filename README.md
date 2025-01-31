@@ -12,3 +12,16 @@ For more detailed troubleshooting, watch this video:
 [How to fix XAMPP database issues](https://www.youtube.com/watch?v=84IOtc05TuA)
 
 
+# How to create a folder apache in linux
+- just follow the code just change the adornado:adornado based on your linux computer name
+```php
+sudo chown -R adornado:adornado /var/www/html/E-commerce
+```
+- then add this for security fatures in the website
+
+```php
+sudo chmod -R 755 /var/www/html/E-commerce
+```
+- Now you can finally  enjoy coding in your e-commerce project
+
+
