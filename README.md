@@ -40,7 +40,7 @@ If you need to reinstall XAMPP or its components, you can follow the steps below
    After downloading the installer, open a terminal and navigate to the folder where the installer is saved. Then run:
 
 ```php
-   chmod +x xampp-linux-x64-<version>.run
+   chmod +x xampp-linux-x64-8.2.12-0-installer.run
 ```
 
 This command gives the installer the necessary execute permissions.
@@ -49,7 +49,7 @@ This command gives the installer the necessary execute permissions.
 Run the installer with root privileges using the following command:
 
 ```php
-sudo ./xampp-linux-x64-<version>.run
+sudo ./xampp-linux-x64-8.2.12-0-installer.run
 ```
 Follow the on-screen instructions to complete the installation.
 
